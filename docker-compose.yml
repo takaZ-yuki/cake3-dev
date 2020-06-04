@@ -1,0 +1,61 @@
+
+version: '3.5'
+
+services:
+  app-web:
+    build:
+      context: .
+      dockerfile: ./Docker/php/Dockerfile
+    container_name: app-web
+    volumes:
+      - ./web:/var/www/html:cached
+    # command: bash -c "sh docker-init-setup.sh && apache2-foreground"
+    environment:
+      - APP_DEFAULT_LOCAL=ja_JP
+      - APP_DEFAULT_TIMEZONE=Asia/Tokyo
+      - DATABASE_HOST=app-mysql
+      - DATABASE_USER=app_user
+      - DATABASE_PASS=app_user123
+      - DATABASE_NAME=app_db
+      - SMTP_HOST=app-smtp
+    ports:
+     - "80:80"
+
+  app-smtp:
+    image: schickling/mailcatcher
+    container_name: app-smtp
+    ports:
+     - "1080:1080"
+     - "25:1025"
+
+  app-mysql:
+    image: mysql:5.7
+    restart: always
+    container_name: app-mysql
+    environment:
+      - MYSQL_DATABASE=app_db
+      - MYSQL_USER=app_user
+      - MYSQL_PASSWORD=app_user123
+      - MYSQL_ROOT_PASSWORD=password
+    volumes:
+      - ./docker/mysql/etc-mysql.cnf:/etc/mysql/conf.d/etc-mysql.cnf
+      - ./docker/mysql/data:/var/lib/mysql
+      - ./docker/mysql/sqls:/docker-entrypoint-initdb.d
+    ports:
+      - 3306:3306
+
+  app-phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: app-phpmyadmin
+    restart: always
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=app-mysql
+      - PMA_USER=root
+      - PMA_PASSWORD=password
+    links:
+      - app-mysql
+    ports:
+      - 8080:80
+    volumes:
+      - /sessions
